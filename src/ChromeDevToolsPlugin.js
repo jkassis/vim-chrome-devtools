@@ -1,5 +1,5 @@
+// https://github.com/neovim/node-client
 // @flow
-
 import CDP, { type Chrome, type Script } from 'chrome-remote-interface';
 import { type NeovimPlugin, type NeovimClient } from 'neovim';
 
