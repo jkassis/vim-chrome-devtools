@@ -1,4 +1,3 @@
-const CRI = require('chrome-remote-interface');
 
 function echoerr(nvim, msg) {
   return nvim.command(`echohl Error | echomsg "${msg}" | echohl None`);
@@ -12,10 +11,28 @@ function echomsg(nvim, msg) {
   return nvim.command(`echomsg "${msg}"`);
 }
 
-class MyPlugin {
+class ChromeDevTools {
   constructor(plugin) {
-    this.plugin = plugin;
-    this._nvim = plugin.nvim;
+    this.state = {};
+    this.state.plugin = plugin;
+    this.state.nvim = plugin.nvim;
+
+    var doCommand = (cmd) => {
+      return (...args) => {
+        // Hot reload the command handlers so we don't have to restart
+        // the plugin provider during development.
+        if (true || devMode) {
+          delete this.commandHandlers;
+          delete require.cache[require.resolve('./mainCommandHandlers.js')];
+        }
+
+        if (!this.commandHandlers) {
+          var CDTCommandHandlers = require('./mainCommandHandlers.js');
+          this.commandHandlers = new CDTCommandHandlers(this.state);
+        }
+        return this.commandHandlers[cmd](...args);
+      }
+    }
 
     process.on('uncaughtException', err => {
       console.error(err);
@@ -25,151 +42,14 @@ class MyPlugin {
     plugin.setOptions({dev: false, alwaysInit: false});
     // plugin.setOptions({dev: true, alwaysInit: false});
 
-    plugin.registerCommand(
-      'SetMyLine',
-      [this, this.setLine]);
-
-    plugin.registerCommand(
-      'ChromeDevToolsConnect',
-      (...args) => this.listOrConnect(...args),
-      { nargs: '*' });
-
-    plugin.registerCommand(
-      'ChromeDevToolsPageReload',
-      (...args) => this.pageReload(...args),
-      { sync: false, });
+    plugin.registerCommand( 'SetMyLine', doCommand('setLine'));
+    plugin.registerCommand( 'ChromeDevToolsConnect', doCommand('listOrConnect'), { nargs: '*' });
+    plugin.registerCommand( 'ChromeDevToolsPageReload', doCommand('pageReload'), { sync: false, });
   }
 
-  setLine() {
-    this.plugin.nvim.setLine('A line, for your troubles');
-  }
-
-  async _getDefaultOptions() {
-    const port = await this._nvim.getVar('ChromeDevTools_port');
-    const host = await this._nvim.getVar('ChromeDevTools_host');
-
-    return {
-      host: host && typeof host == 'string' ? host : 'localhost',
-      port: port && typeof port == 'string' ? port : '9222'
-    };
-  }
-
-  async connect (target)  {
-    const defaultOptions = await this._getDefaultOptions();
-    const chrome = await CDP({ ...defaultOptions, target });
-    this._chrome = chrome;
-
-    this._js._chrome = chrome;
-    this._scripts = [];
-    chrome.Debugger.scriptParsed(script => {
-      this._scripts.push(script);
-    });
-
-    await chrome.Page.enable();
-    await chrome.DOM.enable();
-    await chrome.CSS.enable();
-    await chrome.Runtime.enable();
-    await chrome.Debugger.enable();
-
-    chrome.once('disconnect', () => {
-      echomsg(this._nvim, 'Disconnected from target.');
-    });
-
-    echomsg(this._nvim, 'Connected to target: ' + target);
-  }
-
-  async runtimeEvaluate(args) {
-    debugger;
-    const expression =
-      args.length > 0 ? args[0] : await getVisualSelection(this._nvim);
-
-    const result = await this._chrome.Runtime.evaluate({
-      expression,
-      generatePreview: true,
-    });
-
-    if (result.exceptionDetails) {
-      echoerr(
-        this._nvim,
-        `Failed with message: ${result.exceptionDetails.text}`,
-      );
-      return;
-    }
-
-    console.log(result);
-  }
-
-  listOrConnect(args) {
-    if (args.length == 0) {
-      this.list();
-    } else {
-      const [target] = args[0].split(':');
-      this.connect(target);
-    }
-  }
-
-  async list() {
-    let targets;
-    try {
-      targets = await CRI.List(await this._getDefaultOptions());
-    } catch (e) {
-      echoerr(this._nvim, e.message);
-    }
-
-    if (!targets) {
-      return;
-    }
-
-    const labels = targets.map(({ id, title, url }) => `${id}: ${title} - ${url}`);
-
-    if (labels.length == 0) {
-      echomsg(this._nvim, 'No targets available.');
-    } else {
-      await this._nvim.call('fzf#run', {
-        down: '40%',
-        sink: 'ChromeDevToolsConnect',
-        source: labels
-      });
-      // Force focus on fzf.
-      await this._nvim.input('<c-m>');
-    }
-  }
-
-  async connect (target) {
-    debugger;
-
-    const defaultOptions = await this._getDefaultOptions();
-    const chrome = await CRI({...defaultOptions, target});
-    this._chrome = chrome;
-
-    this._js._chrome = chrome;
-    this._scripts = [];
-    chrome.Debugger.scriptParsed(script => {
-      this._scripts.push(script);
-    });
-
-    await chrome.Page.enable();
-    await chrome.DOM.enable();
-    await chrome.CSS.enable();
-    await chrome.Runtime.enable();
-    await chrome.Debugger.enable();
-
-    chrome.once('disconnect', () => {
-      echomsg(this._nvim, 'Disconnected from target.');
-    });
-
-    echomsg(this._nvim, 'Connected to target: ' + target);
-  }
-
-  pageReload () {
-    debugger;
-    console.log("hello");
-    debugger;
-    this._chrome.Page.reload();
-  };
 }
 
-module.exports = (plugin) => new MyPlugin(plugin);
+module.exports = (plugin) => new ChromeDevTools(plugin);
 
 // Or for convenience, exporting the class itself is equivalent to the above
 // module.exports = MyPlugin;
