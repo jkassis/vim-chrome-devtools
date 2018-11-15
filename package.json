@@ -1,17 +1,5 @@
 {
-  "main": "lib/ChromeDevToolsPlugin.js",
-  "scripts": {
-    "build": "babel src --out-dir lib -s",
-    "precommit": "lint-staged",
-    "start": "npm run build -- --watch",
-    "test": "flow check"
-  },
-  "lint-staged": {
-    "*.js": [
-      "prettier --write",
-      "git add"
-    ]
-  },
+  "main": "main.js",
   "dependencies": {
     "chrome-remote-interface": "^0.26.0"
   },
