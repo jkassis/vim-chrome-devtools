@@ -21,7 +21,8 @@ class MyPlugin {
       console.error(err);
     });
 
-    plugin.setOptions({dev: true, alwaysInit: true});
+    // plugin.setOptions({dev: true, alwaysInit: true});
+    plugin.setOptions({dev: false, alwaysInit: false});
 
     plugin.registerCommand(
       'SetMyLine',
