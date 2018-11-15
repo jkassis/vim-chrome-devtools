@@ -23,6 +23,7 @@ class MyPlugin {
 
     // plugin.setOptions({dev: true, alwaysInit: true});
     plugin.setOptions({dev: false, alwaysInit: false});
+    // plugin.setOptions({dev: true, alwaysInit: false});
 
     plugin.registerCommand(
       'SetMyLine',
@@ -161,6 +162,8 @@ class MyPlugin {
   }
 
   pageReload () {
+    debugger;
+    console.log("hello");
     debugger;
     this._chrome.Page.reload();
   };
