@@ -1,26 +1,48 @@
-const CDP = require('chrome-remote-interface');
+const CRI = require('chrome-remote-interface');
+
+function echoerr(nvim, msg) {
+  return nvim.command(`echohl Error | echomsg "${msg}" | echohl None`);
+}
+
+function echowarn(nvim, msg) {
+  return nvim.command(`echohl WarningMsg | echomsg "${msg}" | echohl None`);
+}
+
+function echomsg(nvim, msg) {
+  return nvim.command(`echomsg "${msg}"`);
+}
 
 class MyPlugin {
   constructor(plugin) {
     this.plugin = plugin;
+    this._nvim = plugin.nvim;
 
-    //plugin.setOptions({dev: true, alwaysInit: true});
-    plugin.registerCommand('SetMyLine', [this, this.setLine]);
-    plugin.registerCommand('ChromeDevToolsConnect', this.listOrConnect, {
-      nargs: '*'
+    process.on('uncaughtException', err => {
+      console.error(err);
     });
-    plugin.registerFunction('ChromeDevTools_Page_reload', this.pageReload, {
-      sync: false,
-    });
+
+    plugin.setOptions({dev: true, alwaysInit: true});
+
+    plugin.registerCommand(
+      'SetMyLine',
+      [this, this.setLine]);
+
+    plugin.registerCommand(
+      'ChromeDevToolsConnect',
+      (...args) => this.listOrConnect(...args),
+      { nargs: '*' });
+
+    plugin.registerCommand(
+      'ChromeDevToolsPageReload',
+      (...args) => this.pageReload(...args),
+      { sync: false, });
   }
 
   setLine() {
-    debugger;
     this.plugin.nvim.setLine('A line, for your troubles');
   }
 
   async _getDefaultOptions() {
-    debugger;
     const port = await this._nvim.getVar('ChromeDevTools_port');
     const host = await this._nvim.getVar('ChromeDevTools_host');
 
@@ -31,9 +53,8 @@ class MyPlugin {
   }
 
   async connect (target)  {
-    debugger;
     const defaultOptions = await this._getDefaultOptions();
-    const chrome = await (0, _chromeRemoteInterface2.default)(_extends({}, defaultOptions, { target }));
+    const chrome = await CDP({ ...defaultOptions, target });
     this._chrome = chrome;
 
     this._js._chrome = chrome;
@@ -49,10 +70,10 @@ class MyPlugin {
     await chrome.Debugger.enable();
 
     chrome.once('disconnect', () => {
-      (0, _echo.echomsg)(this._nvim, 'Disconnected from target.');
+      echomsg(this._nvim, 'Disconnected from target.');
     });
 
-    (0, _echo.echomsg)(this._nvim, 'Connected to target: ' + target);
+    echomsg(this._nvim, 'Connected to target: ' + target);
   }
 
   async runtimeEvaluate(args) {
@@ -77,8 +98,6 @@ class MyPlugin {
   }
 
   listOrConnect(args) {
-    debugger;
-
     if (args.length == 0) {
       this.list();
     } else {
@@ -88,13 +107,11 @@ class MyPlugin {
   }
 
   async list() {
-    debugger;
-
     let targets;
     try {
-      targets = await _chromeRemoteInterface2.default.List((await this._getDefaultOptions()));
+      targets = await CRI.List(await this._getDefaultOptions());
     } catch (e) {
-      (0, _echo.echoerr)(this._nvim, e.message);
+      echoerr(this._nvim, e.message);
     }
 
     if (!targets) {
@@ -104,7 +121,7 @@ class MyPlugin {
     const labels = targets.map(({ id, title, url }) => `${id}: ${title} - ${url}`);
 
     if (labels.length == 0) {
-      (0, _echo.echomsg)(this._nvim, 'No targets available.');
+      echomsg(this._nvim, 'No targets available.');
     } else {
       await this._nvim.call('fzf#run', {
         down: '40%',
@@ -120,7 +137,7 @@ class MyPlugin {
     debugger;
 
     const defaultOptions = await this._getDefaultOptions();
-    const chrome = await (0, _chromeRemoteInterface2.default)(_extends({}, defaultOptions, { target }));
+    const chrome = await CRI({...defaultOptions, target});
     this._chrome = chrome;
 
     this._js._chrome = chrome;
@@ -136,13 +153,14 @@ class MyPlugin {
     await chrome.Debugger.enable();
 
     chrome.once('disconnect', () => {
-      (0, _echo.echomsg)(this._nvim, 'Disconnected from target.');
+      echomsg(this._nvim, 'Disconnected from target.');
     });
 
-    (0, _echo.echomsg)(this._nvim, 'Connected to target: ' + target);
+    echomsg(this._nvim, 'Connected to target: ' + target);
   }
 
   pageReload () {
+    debugger;
     this._chrome.Page.reload();
   };
 }
