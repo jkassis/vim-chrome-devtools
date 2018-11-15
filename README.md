@@ -5,7 +5,7 @@ to connect to your Google Chrome instance.
 
 ![CSS reload](https://user-images.githubusercontent.com/312351/39975780-335638a2-56f6-11e8-945a-128fe59fa76c.gif)
 
-More screencasts can be seen [here](https://github.com/carlosrocha/vim-chrome-devtools/issues/1).
+More screencasts can be seen [here](https://github.com/jkassis/vim-chrome-devtools/issues/1).
 
 ## Requirements
 
@@ -22,10 +22,13 @@ Tested on node 8.5.0 and Google Chrome 61.
 ### Using [vim-plug](https://github.com/junegunn/vim-plug)
 
 ```
-Plug 'carlosrocha/vim-chrome-devtools', { 'do': 'npm install && npm run build' }
+Plug 'neovim/node-host'
+Plug 'jkassis/vim-chrome-devtools', { 'do': 'npm install && npm run build' }
 ```
 
 After installing or updating you need to run `:UpdateRemotePlugins` and restart Neovim.
+If you add the Vim Plug configuration without the options above to do the install, you
+will need to manually do the install in the plugin directory.
 
 ## Variables
 
@@ -41,3 +44,16 @@ After installing or updating you need to run `:UpdateRemotePlugins` and restart 
 - `ChromeDevTools_Page_reload()`
 - `ChromeDevTools_Runtime_evaluate()`
 - `ChromeDevTools_CSS_createStyleSheet()`
+
+## Debugging the Plugin
+Follow the instructions at https://github.com/neovim/node-client
+
+- set the NVIM_NODE_HOST_DEBUG variable...
+`export NVIM_NODE_HOST_DEBUG=localhost`
+
+- Open chrome and navigate to `chrome://inspect`
+
+- Open the dedicated node.js tools panel
+
+- Restart neovim
+
