@@ -1,23 +1,7 @@
 {
   "main": "main.js",
   "dependencies": {
-    "chrome-remote-interface": "^0.26.0"
-  },
-  "devDependencies": {
-    "babel-cli": "^6.24.1",
-    "babel-plugin-syntax-async-functions": "^6.13.0",
-    "babel-plugin-syntax-trailing-function-commas": "^6.22.0",
-    "babel-plugin-transform-class-properties": "^6.24.1",
-    "babel-plugin-transform-object-rest-spread": "^6.26.0",
-    "babel-preset-env": "^1.6.0",
-    "babel-preset-flow": "^6.23.0",
-    "flow-bin": "^0.81.0",
-    "husky": "^0.14.3",
-    "lint-staged": "^7.0.0",
-    "prettier": "^1.14.2"
-  },
-  "prettier": {
-    "singleQuote": true,
-    "trailingComma": "all"
+    "chrome-remote-interface": "^0.26.1",
+    "neovim": "^4.2.1"
   }
 }
