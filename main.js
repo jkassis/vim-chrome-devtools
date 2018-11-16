@@ -1,21 +1,18 @@
+const util = require('./utils.js');
 
-function echoerr(nvim, msg) {
-  return nvim.command(`echohl Error | echomsg "${msg}" | echohl None`);
-}
-
-function echowarn(nvim, msg) {
-  return nvim.command(`echohl WarningMsg | echomsg "${msg}" | echohl None`);
-}
-
-function echomsg(nvim, msg) {
-  return nvim.command(`echomsg "${msg}"`);
-}
-
-class ChromeDevTools {
+class CDT {
   constructor(plugin) {
+    process.on('uncaughtException', err => {
+      console.error(err);
+    });
+
     this.state = {};
     this.state.plugin = plugin;
     this.state.nvim = plugin.nvim;
+
+    // plugin.setOptions({dev: true, alwaysInit: true});
+    plugin.setOptions({dev: false, alwaysInit: false});
+    // plugin.setOptions({dev: true, alwaysInit: false});
 
     var doCommand = (cmd) => {
       return (...args) => {
@@ -32,24 +29,20 @@ class ChromeDevTools {
         }
         return this.commandHandlers[cmd](...args);
       }
-    }
+    };
 
-    process.on('uncaughtException', err => {
-      console.error(err);
-    });
-
-    // plugin.setOptions({dev: true, alwaysInit: true});
-    plugin.setOptions({dev: false, alwaysInit: false});
-    // plugin.setOptions({dev: true, alwaysInit: false});
 
     plugin.registerCommand( 'SetMyLine', doCommand('setLine'));
-    plugin.registerCommand( 'ChromeDevToolsConnect', doCommand('listOrConnect'), { nargs: '*' });
-    plugin.registerCommand( 'ChromeDevToolsPageReload', doCommand('pageReload'), { sync: false, });
+    plugin.registerCommand( 'CDTToggle', doCommand('toggle'), { nargs: '*' });
+    plugin.registerCommand( 'CDTConnect', doCommand('listOrConnect'), { nargs: '*' });
+    plugin.registerCommand( 'CDTStepOver', doCommand('stepOver'), { nargs: '*' });
+    plugin.registerCommand( 'CDTStepInto', doCommand('stepInto'), { nargs: '*' });
+    plugin.registerCommand( 'CDTStepOut', doCommand('stepOut'), { nargs: '*' });
+    plugin.registerCommand( 'CDTPageReload', doCommand('pageReload'), { sync: false, });
   }
-
 }
 
-module.exports = (plugin) => new ChromeDevTools(plugin);
+module.exports = (plugin) => new CDT(plugin);
 
 // Or for convenience, exporting the class itself is equivalent to the above
 // module.exports = MyPlugin;

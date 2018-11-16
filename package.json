@@ -2,7 +2,6 @@
   "main": "main.js",
   "dependencies": {
     "chrome-remote-interface": "^0.26.1",
-    "express": "^4.16.4",
-    "neovim": "^4.2.1"
+    "express": "^4.16.4"
   }
 }

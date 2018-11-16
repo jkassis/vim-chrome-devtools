@@ -1,3 +1,4 @@
+echo "Install https://chrome.google.com/webstore/detail/nodejs-v8-inspector-manag"
 echo "> source debugEnable.bash"
 echo "Launch neovim"
 echo "Run :UpdateRemotePlugins"

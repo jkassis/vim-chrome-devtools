@@ -1,4 +1,6 @@
+const util = require('./utils.js');
 const CRI = require('chrome-remote-interface');
+
 //
 // Note... console.log in this file will crash the process
 // neovim will report that the channel is closed
@@ -10,6 +12,16 @@ class ChromeDevToolsCommandHandlers {
   setLine() {
     this.state.plugin.nvim.setLine('A line, for your troubles');
   }
+
+  async toggle() {
+    var mapKey = (lhs, rhs) => {
+      this.state.nvim.command(`map ${lhs} ${rhs}`);
+    };
+    mapKey('<F5>', ':CDTConnect<CR>');
+    mapKey('<F4>', ':CDTStepOver<CR>');
+    mapKey('<F3>', ':CDTStepInto<CR>');
+    mapKey('<F2>', ':CDTStepOut<CR>');
+  };
 
   async _getDefaultOptions() {
     const port = await this.state.nvim.getVar('ChromeDevTools_port');
@@ -38,10 +50,10 @@ class ChromeDevToolsCommandHandlers {
     await chrome.Debugger.enable();
 
     chrome.once('disconnect', () => {
-      echomsg(this.state.nvim, 'Disconnected from target.');
+      util.echomsg(this.state.nvim, 'Disconnected from target.');
     });
 
-    echomsg(this.state.nvim, 'Connected to target: ' + target);
+    util.echomsg(this.state.nvim, 'Connected to target: ' + target);
   }
 
   async runtimeEvaluate(args) {
@@ -54,7 +66,7 @@ class ChromeDevToolsCommandHandlers {
     });
 
     if (result.exceptionDetails) {
-      echoerr(
+      util.echoerr(
         this.state.nvim,
         `Failed with message: ${result.exceptionDetails.text}`,
       );
@@ -78,7 +90,7 @@ class ChromeDevToolsCommandHandlers {
     try {
       targets = await CRI.List(await this._getDefaultOptions());
     } catch (e) {
-      echoerr(this.state.nvim, e.message);
+      util.echoerr(this.state.nvim, e.message);
     }
 
     if (!targets) {
@@ -88,11 +100,11 @@ class ChromeDevToolsCommandHandlers {
     const labels = targets.map(({ id, title, url }) => `${id}: ${title} - ${url}`);
 
     if (labels.length == 0) {
-      echomsg(this.state.nvim, 'No targets available.');
+      util.echomsg(this.state.nvim, 'No targets available.');
     } else {
       await this.state.nvim.call('fzf#run', {
         down: '40%',
-        sink: 'ChromeDevToolsConnect',
+        sink: 'CDTConnect',
         source: labels
       });
       // Force focus on fzf.
@@ -117,15 +129,42 @@ class ChromeDevToolsCommandHandlers {
     await this.state.chrome.Debugger.enable();
 
     this.state.chrome.once('disconnect', () => {
-      echomsg(this.state.nvim, 'Disconnected from target.');
+      util.echomsg(this.state.nvim, 'Disconnected from target.');
     });
 
-    echomsg(this.state.nvim, 'Connected to target: ' + target);
+    util.echomsg(this.state.nvim, 'Connected to target: ' + target);
+  }
+
+  requireTarget() {
+    if (!this.state.chrome){
+      util.echomsg(this.state.nvim, 'Connect to target first.');
+      return false;
+    }
+    return true;
   }
 
   pageReload (args) {
-    debugger;
+    if (!this.requireTarget())
+      return;
     this.state.chrome.Page.reload();
+  };
+
+  stepOver (args) {
+    if (!this.requireTarget())
+      return;
+    this.state.chrome.Debugger.stepOver();
+  };
+
+  stepInto (args) {
+    if (!this.requireTarget())
+      return;
+    this.state.chrome.Debugger.stepInto();
+  };
+
+  stepOut (args) {
+    if (!this.requireTarget())
+      return;
+    this.state.chrome.Debugger.stepOut();
   };
 };
 
