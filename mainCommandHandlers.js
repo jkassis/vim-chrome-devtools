@@ -35,27 +35,11 @@ class ChromeDevToolsCommandHandlers {
     };
   }
 
-  async connect (target)  {
-    const defaultOptions = await this.state._getDefaultOptions();
-    const chrome = await CDP({ ...defaultOptions, target });
-    this.state.chrome = chrome;
-
-    this.state.scripts = [];
-    chrome.Debugger.scriptParsed(script => {
-      this.state.scripts.push(script);
-    });
-
-    await chrome.Page.enable();
-    await chrome.DOM.enable();
-    await chrome.CSS.enable();
-    await chrome.Runtime.enable();
-    await chrome.Debugger.enable();
-
-    chrome.once('disconnect', () => {
-      util.echomsg(this.state.nvim, 'Disconnected from target.');
-    });
-
-    util.echomsg(this.state.nvim, 'Connected to target: ' + target);
+  onPaused(evt) {
+    var url = evt.callFrames[0].url;
+    var lineNumber = evt.callFrames[0].location.lineNumber;
+    var columnNumber = evt.callFrames[0].location.columnNumber;
+    debugger;
   }
 
   async runtimeEvaluate(args) {
@@ -133,6 +117,8 @@ class ChromeDevToolsCommandHandlers {
     this.state.chrome.once('disconnect', () => {
       util.echomsg(this.state.nvim, 'Disconnected from target.');
     });
+
+    chrome.on('Debugger.paused', (...args) => { return this.onPaused(...args);});
 
     util.echomsg(this.state.nvim, 'Connected to target: ' + target);
   }
