@@ -3,7 +3,7 @@ const util = require('./utils.js');
 class CDT {
   constructor(plugin) {
     process.on('uncaughtException', err => {
-      console.error(err);
+      util.echoerr(this.state.nvim, err);
     });
 
     this.state = {};
@@ -24,8 +24,13 @@ class CDT {
         }
 
         if (!this.commandHandlers) {
-          var CDTCommandHandlers = require('./mainCommandHandlers.js');
-          this.commandHandlers = new CDTCommandHandlers(this.state);
+          try {
+            var CDTCommandHandlers = require('./mainCommandHandlers.js');
+            this.commandHandlers = new CDTCommandHandlers(this.state);
+          } catch(err) {
+            debugger;
+            util.echoerr(this.state.nvim, err);
+          }
         }
         return this.commandHandlers[cmd](...args);
       }
