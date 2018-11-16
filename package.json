@@ -2,6 +2,8 @@
   "main": "main.js",
   "dependencies": {
     "chrome-remote-interface": "^0.26.1",
-    "express": "^4.16.4"
+    "express": "^4.16.4",
+    "fuse.js": "^3.3.0",
+    "walk": "^2.3.14"
   }
 }

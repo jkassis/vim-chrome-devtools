@@ -14,7 +14,7 @@ class CDT {
     plugin.setOptions({dev: false, alwaysInit: false});
     // plugin.setOptions({dev: true, alwaysInit: false});
 
-    var doCommand = (cmd) => {
+    var doCommand = (cmd, ...staticArgs) => {
       return (...args) => {
         // Hot reload the command handlers so we don't have to restart
         // the plugin provider during development.
@@ -32,19 +32,22 @@ class CDT {
             util.echoerr(this.state.nvim, err);
           }
         }
-        return this.commandHandlers[cmd](...args);
+
+        return this.commandHandlers[cmd](...staticArgs, ...args);
       }
     };
 
-
     plugin.registerCommand( 'SetMyLine', doCommand('setLine'));
     plugin.registerCommand( 'CDTToggle', doCommand('toggle'), { nargs: '*' });
-    plugin.registerCommand( 'CDTConnect', doCommand('listOrConnect'), { nargs: '*' });
+    plugin.registerCommand( 'CDTConnect', doCommand('listOrConnect', doCommand), { nargs: '*' });
     plugin.registerCommand( 'CDTPlay', doCommand('play'), { sync: false, nargs: '*' });
     plugin.registerCommand( 'CDTStepOver', doCommand('stepOver'), { sync: false, nargs: '*' });
     plugin.registerCommand( 'CDTStepInto', doCommand('stepInto'), { sync: false, nargs: '*' });
     plugin.registerCommand( 'CDTStepOut', doCommand('stepOut'), { sync: false, nargs: '*' });
     plugin.registerCommand( 'CDTPageReload', doCommand('pageReload'), { sync: false, });
+
+    var cwd = process.cwd();
+    util.echomsg(this.state.nvim, `Debugger ready... mapping files to '${cwd}'`);
   }
 }
 

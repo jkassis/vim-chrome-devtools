@@ -1,5 +1,9 @@
 const util = require('./utils.js');
 const CRI = require('chrome-remote-interface');
+// https://www.npmjs.com/package/walk
+const walk = require('walk');
+const fs = require('fs');
+const Fuse = require('fuse.js');
 
 //
 // Note... console.log in this file will crash the process
@@ -23,7 +27,47 @@ class ChromeDevToolsCommandHandlers {
     mapKey('<Leader><F4>', ':CDTPlay<CR>');
     mapKey('<F3>', ':CDTStepInto<CR>');
     mapKey('<F2>', ':CDTStepOut<CR>');
+
+    this.index();
   };
+
+  index() {
+    var cwd = process.cwd();
+    util.echomsg(this.state.nvim, `Debugger Enabled: Indexing '${cwd}'`);
+
+    var fuseList = [];
+
+    var walker = walk.walk(cwd, {
+      followLinks: false
+      , filters: ["Temp", "_Temp", "node_modules"]
+    });
+
+    walker.on("file", (root, fileStats, next) => {
+      fuseList.push({ path: `${root}/${fileStats.name}` });
+      next();
+    });
+
+    walker.on("errors", (root, nodeStatsArray, next) => {
+      next();
+    });
+
+    walker.on("end", () => {
+      var options = {
+        shouldSort: true,
+        threshold: 0.6,
+        location: 0,
+        distance: 100,
+        maxPatternLength: 32,
+        minMatchCharLength: 1,
+        tokenize: true,
+        keys: [
+          "path"
+        ]
+      };
+      this.state.fuzzyFileIndex = new Fuse(fuseList, options); // "list" is the item array
+      util.echomsg(this.state.nvim, `...indexing complete.`);
+    });
+  }
 
   async _getDefaultOptions() {
     const port = await this.state.nvim.getVar('ChromeDevTools_port');
@@ -39,7 +83,12 @@ class ChromeDevToolsCommandHandlers {
     var url = evt.callFrames[0].url;
     var lineNumber = evt.callFrames[0].location.lineNumber;
     var columnNumber = evt.callFrames[0].location.columnNumber;
-    debugger;
+
+    // Search the index for the file.
+    var results = this.state.fuzzyFileIndex.search(url);
+    this.state.nvim.command(`e ${results[0].path }`);
+    this.state.nvim.command(`${ lineNumber }G`);
+    this.state.nvim.command(`${ columnNumber }|`);
   }
 
   async runtimeEvaluate(args) {
@@ -62,12 +111,12 @@ class ChromeDevToolsCommandHandlers {
     console.log(result);
   }
 
-  listOrConnect(args) {
-    if (args.length == 0) {
+  listOrConnect(doCommand, ...args) {
+    var target = args[0] ? args[0][0] : undefined;
+    if (!target) {
       this.list();
     } else {
-      const [target] = args[0].split(':');
-      this.connect(target);
+      this.connect(doCommand, target.split(':')[0]);
     }
   }
 
@@ -98,15 +147,15 @@ class ChromeDevToolsCommandHandlers {
     }
   }
 
-  async connect (target) {
+  async connect (doCommand, target) {
+    // TODO needs to disconnect if chrome already exists and is connected
     const defaultOptions = await this._getDefaultOptions();
-    const chrome = await CRI({...defaultOptions, target});
-    this.state.chrome = chrome;
+    if (this.state.chrome) {
+      util.echomsg(this.state.nvim, 'Already connected.');
+      return;
+    }
 
-    this.state.scripts = [];
-    chrome.Debugger.scriptParsed(script => {
-      this.state.scripts.push(script);
-    });
+    this.state.chrome = await CRI({...defaultOptions, target});
 
     await this.state.chrome.Page.enable();
     await this.state.chrome.DOM.enable();
@@ -114,11 +163,21 @@ class ChromeDevToolsCommandHandlers {
     await this.state.chrome.Runtime.enable();
     await this.state.chrome.Debugger.enable();
 
+
+    // Cache parsed scripts
+    this.state.scripts = [];
+    this.state.chrome.Debugger.scriptParsed(script => {
+      this.state.scripts.push(script);
+    });
+
+    // Clear on disconnect
     this.state.chrome.once('disconnect', () => {
+      delete this.state.chrome;
       util.echomsg(this.state.nvim, 'Disconnected from target.');
     });
 
-    chrome.on('Debugger.paused', (...args) => { return this.onPaused(...args);});
+    // Handle paused events
+    this.state.chrome.Debugger.paused(doCommand('onPaused'));
 
     util.echomsg(this.state.nvim, 'Connected to target: ' + target);
   }
@@ -129,7 +188,6 @@ class ChromeDevToolsCommandHandlers {
       return false;
     }
     return true;
-    util.echomsg(this.state.nvim, 'Connected to target: ' + target);
   }
 
   pageReload (args) {
