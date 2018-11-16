@@ -17,8 +17,10 @@ class ChromeDevToolsCommandHandlers {
     var mapKey = (lhs, rhs) => {
       this.state.nvim.command(`map ${lhs} ${rhs}`);
     };
+    mapKey('<F9>', ':CDTPageReload<CR>');
     mapKey('<F5>', ':CDTConnect<CR>');
     mapKey('<F4>', ':CDTStepOver<CR>');
+    mapKey('<Leader><F4>', ':CDTPlay<CR>');
     mapKey('<F3>', ':CDTStepInto<CR>');
     mapKey('<F2>', ':CDTStepOut<CR>');
   };
@@ -141,12 +143,19 @@ class ChromeDevToolsCommandHandlers {
       return false;
     }
     return true;
+    util.echomsg(this.state.nvim, 'Connected to target: ' + target);
   }
 
   pageReload (args) {
     if (!this.requireTarget())
       return;
     this.state.chrome.Page.reload();
+  };
+
+  play (args) {
+    if (!this.requireTarget())
+      return;
+    this.state.chrome.Debugger.resume();
   };
 
   stepOver (args) {

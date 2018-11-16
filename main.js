@@ -40,9 +40,10 @@ class CDT {
     plugin.registerCommand( 'SetMyLine', doCommand('setLine'));
     plugin.registerCommand( 'CDTToggle', doCommand('toggle'), { nargs: '*' });
     plugin.registerCommand( 'CDTConnect', doCommand('listOrConnect'), { nargs: '*' });
-    plugin.registerCommand( 'CDTStepOver', doCommand('stepOver'), { nargs: '*' });
-    plugin.registerCommand( 'CDTStepInto', doCommand('stepInto'), { nargs: '*' });
-    plugin.registerCommand( 'CDTStepOut', doCommand('stepOut'), { nargs: '*' });
+    plugin.registerCommand( 'CDTPlay', doCommand('play'), { sync: false, nargs: '*' });
+    plugin.registerCommand( 'CDTStepOver', doCommand('stepOver'), { sync: false, nargs: '*' });
+    plugin.registerCommand( 'CDTStepInto', doCommand('stepInto'), { sync: false, nargs: '*' });
+    plugin.registerCommand( 'CDTStepOut', doCommand('stepOut'), { sync: false, nargs: '*' });
     plugin.registerCommand( 'CDTPageReload', doCommand('pageReload'), { sync: false, });
   }
 }
